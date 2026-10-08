@@ -1,0 +1,6 @@
+{
+  "name": "tool-fold",
+  "version": "0.1.0",
+  "description": "Folds runs of tool calls into one expandable line, with a navigable tree in the band above the prompt",
+  "types": "./types/index.d.ts"
+}
