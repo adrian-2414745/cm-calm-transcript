@@ -88,6 +88,18 @@ function groupBy<T>(items: T[], key: (t: T) => string): Map<string, T[]> {
   return map
 }
 
+// Consecutive calls of one tool, in the order they ran: Read, Read, Bash, Read
+// is Read (2), Bash (1), Read (1).
+function segments(calls: FoldCall[]): { tool: string; calls: FoldCall[] }[] {
+  const out: { tool: string; calls: FoldCall[] }[] = []
+  for (const c of calls) {
+    const last = out[out.length - 1]
+    if (last !== undefined && last.tool === c.tool) last.calls.push(c)
+    else out.push({ tool: c.tool, calls: [c] })
+  }
+  return out
+}
+
 function header(run: FoldRun): string {
   const tools = new Set(run.calls.map(c => c.tool)).size
   const files = new Set(run.calls.filter(c => c.isPath).map(c => c.target)).size
@@ -106,8 +118,8 @@ function flatten(scope: string, list: FoldRun[], expanded: Record<string, boolea
     const runKey = `${scope}:${run.id}`
     node(runKey, 0, header(run), run.calls.some(c => c.isError))
     if (!expanded[runKey]) continue
-    for (const [tool, calls] of groupBy(run.calls, c => c.tool)) {
-      const toolKey = `${runKey}:${tool}`
+    for (const [i, { tool, calls }] of segments(run.calls).entries()) {
+      const toolKey = `${runKey}:${i}:${tool}`
       const targets = groupBy(calls, c => c.target)
       const unit = calls[0]!.isPath ? 'file' : 'call'
       node(toolKey, 1, `${tool} (${plural(unit === 'file' ? targets.size : calls.length, unit)})`)
